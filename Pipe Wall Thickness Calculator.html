@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline Wall Thickness Calculator | 49 CFR § 192 & § 195</title>
+
+  <script>
+    window.tailwind = window.tailwind || {};
+    tailwind = window.tailwind;
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'hdd-navy': '#15293e',
+            'hdd-navy-dark': '#0f1d2d',
+            'hdd-header': '#1b3654',
+            'hdd-header-text': '#102a45',
+            'hdd-blue': '#1e4b85',
+            'hdd-accent': '#2563eb',
+            'hdd-cyan': '#0284c7',
+            'hdd-bg': '#eef2f6',
+            'hdd-card': '#ffffff',
+            'hdd-border': '#cbd5e1',
+            'hdd-border-light': '#e2e8f0',
+            'hdd-slate': '#475569',
+            'hdd-guide-bg': '#f0f7ff',
+            'hdd-guide-border': '#bae6fd',
+            'eng-compliant': '#166534',
+            'eng-info': '#1d4ed8',
+            'eng-advisory': '#d97706',
+            'eng-critical': '#dc2626'
+          }
+        }
+      }
+    };
+  </script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { background: white !important; color: #1e293b !important; font-size: 11px !important; }
+      .bg-[#EEF2F6] { background: white !important; }
+      main { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+      .grid { display: block !important; }
+      .lg\:col-span-7, .lg\:col-span-5 { width: 100% !important; }
+      .rounded, .rounded-full { border-radius: 2px !important; }
+      .shadow-xs, .shadow-md, .shadow-lg { box-shadow: none !important; }
+      .border { border-color: #cbd5e1 !important; }
+      
+      /* Avoid splitting individual cards across pages */
+      .bg-white, .guidance-block, #topBannerReview {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        margin-bottom: 12px !important;
+      }
+      
+      /* Ensure proper page break before summary results if printing on multi-page */
+      .print-break-before {
+        page-break-before: always !important;
+        break-before: always !important;
+      }
+
+      /* Clean link rendering for print */
+      a { text-decoration: none !important; color: #1d4ed8 !important; }
+    }
+    input::-webkit-outer-spin-button,
+    input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    input[type=number] { -moz-appearance: textfield; }
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+  </style>
+</head>
+<body class="bg-[#EEF2F6] text-slate-800 min-h-screen flex flex-col font-sans antialiased text-[13px]">
+
+  <!-- Top Dark Blue Enterprise Navbar (HDD Tool Style) -->
+  <header class="bg-hdd-navy text-white shadow-md border-b border-[#0f1d2d]">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+
+      <!-- Brand & Title -->
+      <div class="flex items-center space-x-3">
+        <div class="bg-blue-600 text-white font-extrabold text-xs px-2 py-1 rounded shadow-inner tracking-wider">
+          B&amp;McD
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-bold tracking-tight text-white uppercase">Pipeline Wall Thickness Tool</h1>
+            <span id="serviceBadge" class="text-[10px] bg-blue-800/80 text-blue-100 px-1.5 py-0.5 rounded font-mono">49 CFR Part 192 (Gas)</span>
+          </div>
+          <p id="serviceSubtitle" class="text-[10px] text-slate-300">Natural Gas Transmission Pipe Wall Thickness &amp; Regulatory Pressure Design</p>
+        </div>
+      </div>
+
+      <!-- Action Utility Buttons -->
+      <div class="flex items-center space-x-2 no-print text-[11px]">
+        <button onclick="runCalculation(true)" class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white border border-emerald-500 transition font-semibold">
+          <i data-lucide="play" class="w-3.5 h-3.5"></i> Run Calculation
+        </button>
+        <button onclick="toggleGuidanceMode()" id="guidanceToggleBtn" class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#254b77] hover:bg-[#2d588a] text-white border border-[#3b679b] transition font-medium">
+          <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Guidance: ON
+        </button>
+        <button onclick="window.print()" class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#1e3856] hover:bg-[#27466b] text-slate-200 border border-[#31537a] transition">
+          <i data-lucide="printer" class="w-3.5 h-3.5"></i> Print / PDF
+        </button>
+        <button onclick="resetDefaults()" class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#1e3856] hover:bg-[#27466b] text-slate-200 border border-[#31537a] transition">
+          <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-grow max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 space-y-4">
+
+    <!-- Commodity / Regulatory Regime Selection Ribbon -->
+    <div class="bg-white rounded border-2 border-blue-500 shadow-xs px-4 py-2.5 flex flex-wrap gap-4 items-center justify-between text-xs">
+      <div class="flex items-center gap-3">
+        <label class="font-bold text-slate-700 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+          <i data-lucide="git-branch" class="w-4 h-4 text-blue-700"></i>
+          Pipeline Commodity Service:
+        </label>
+        <div class="flex items-center gap-2">
+          <label class="inline-flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1 rounded border border-slate-300">
+            <input type="radio" name="commodityService" value="gas" checked onchange="handleServiceChange()" class="text-blue-700 focus:ring-0">
+            <span class="font-semibold text-slate-800">Natural Gas (49 CFR Part 192 / ASME B31.8)</span>
+          </label>
+          <label class="inline-flex items-center gap-1.5 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1 rounded border border-slate-300">
+            <input type="radio" name="commodityService" value="liquid" onchange="handleServiceChange()" class="text-blue-700 focus:ring-0">
+            <span class="font-semibold text-slate-800">Hazardous Liquids / Petroleum (49 CFR Part 195 / ASME B31.4)</span>
+          </label>
+        </div>
+      </div>
+      <div class="text-[11px] text-slate-500 hidden sm:block">
+        Standard Barlow Formulation: <span class="font-mono font-semibold text-slate-700">t = (P · D) / (2 · S · F · E · T)</span>
+      </div>
+    </div>
+
+    <!-- Project Metadata Ribbon -->
+    <div class="bg-white rounded border border-hdd-border shadow-xs px-4 py-2.5 flex flex-wrap gap-4 items-center justify-between text-xs">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 flex-1">
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-500 uppercase">Project / Case Name</label>
+          <input type="text" id="caseName" value="" placeholder="Enter project name..." class="mt-0.5 w-full text-xs font-semibold border border-slate-300 rounded px-2 py-1 focus:border-blue-700 outline-none" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-500 uppercase">Pipeline Engineer</label>
+          <input type="text" id="engineerName" value="" placeholder="Enter engineer name..." class="mt-0.5 w-full text-xs font-semibold border border-slate-300 rounded px-2 py-1 focus:border-blue-700 outline-none" />
+        </div>
+        <div>
+          <label class="block text-[10px] font-semibold text-slate-500 uppercase flex items-center justify-between">
+            <span>Calculation Date</span>
+            <span id="dateStatus" class="text-[9px] text-slate-400 font-normal">Stamps on calculation run</span>
+          </label>
+          <input type="date" id="calcDate" class="mt-0.5 w-full text-xs font-semibold border border-slate-300 rounded px-2 py-1 focus:border-blue-700 outline-none" />
+        </div>
+      </div>
+      <div class="flex items-center gap-2 border-t sm:border-t-0 sm:border-l sm:pl-4 border-slate-200">
+        <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-[#166534] border border-emerald-300">
+          <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Live Solving Engine
+        </span>
+      </div>
+    </div>
+
+    <!-- Top Diagnostic / Review Banner -->
+    <div id="topBannerReview" class="rounded border p-3 shadow-xs transition-all duration-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <i id="topBannerIcon" data-lucide="shield-check" class="w-4 h-4 text-[#166534]"></i>
+          <span id="topBannerTitle" class="font-bold text-xs uppercase tracking-wide text-[#166534]">
+            Design Verification Passed — All Regulatory Limits Satisfied
+          </span>
+        </div>
+        <span id="topBannerBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-white font-bold border border-emerald-300 text-[#166534]">
+          STATUS: COMPLIANT
+        </span>
+      </div>
+
+      <!-- Detail issues list inside alert -->
+      <div id="topBannerIssuesBox" class="mt-2.5 pt-2 border-t border-slate-200 hidden space-y-2 text-[11px]"></div>
+    </div>
+
+    <!-- Main Workspace Layout: 7 Cols Left (Steps) / 5 Cols Right (Outputs & Summary) -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- ==================== LEFT COLUMN: NUMBERED STEP CARDS ==================== -->
+      <div class="lg:col-span-7 space-y-4">
+
+        <!-- STEP 1: Pipe Geometry & Design Pressure -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs overflow-hidden">
+          <div class="bg-slate-100 border-b border-hdd-border px-3.5 py-2.5 flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#102a45] flex items-center gap-2">
+              <span class="bg-[#102a45] text-white text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold">Step 1</span>
+              <span>Pipe Geometry &amp; Operating Pressure</span>
+            </h2>
+            <a id="step1RegLink" href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C/section-192.105" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline font-mono font-medium">
+              49 CFR § 192.105 ↗
+            </a>
+          </div>
+
+          <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <!-- Nominal Pipe Size Selection (Default NPS 10) -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700">Nominal Pipe Size (NPS)</label>
+              <select id="npsSelect" onchange="handleNpsChange()" class="mt-1 w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white focus:border-blue-700 outline-none font-medium">
+                <option value="2.375">NPS 2 (2.375" OD)</option>
+                <option value="3.500">NPS 3 (3.500" OD)</option>
+                <option value="4.500">NPS 4 (4.500" OD)</option>
+                <option value="6.625">NPS 6 (6.625" OD)</option>
+                <option value="8.625">NPS 8 (8.625" OD)</option>
+                <option value="10.750" selected>NPS 10 (10.750" OD)</option>
+                <option value="12.750">NPS 12 (12.750" OD)</option>
+                <option value="16.000">NPS 16 (16.000" OD)</option>
+                <option value="20.000">NPS 20 (20.000" OD)</option>
+                <option value="24.000">NPS 24 (24.000" OD)</option>
+                <option value="30.000">NPS 30 (30.000" OD)</option>
+                <option value="36.000">NPS 36 (36.000" OD)</option>
+                <option value="42.000">NPS 42 (42.000" OD)</option>
+                <option value="custom">Custom Outside Diameter...</option>
+              </select>
+            </div>
+
+            <!-- Outside Diameter D -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 flex justify-between">
+                <span>Outside Diameter (D)</span>
+                <span class="text-slate-400 font-normal">in</span>
+              </label>
+              <input type="number" id="odInput" step="0.001" min="0.1" value="10.750" oninput="runCalculation(true)" class="mt-1 w-full text-xs font-bold border border-slate-300 rounded px-2.5 py-1.5 focus:border-blue-700 outline-none text-slate-800" />
+            </div>
+
+            <!-- Design Pressure P with Pressure Class Indicator -->
+            <div>
+              <div class="flex items-center justify-between">
+                <label id="labelPressure" class="block text-[11px] font-bold text-slate-700">Design Pressure (P) / MAOP</label>
+                <span id="pressureClassBadge" class="text-[9.5px] font-mono px-1.5 py-0.5 rounded font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                  MID PRESSURE (150–1000 psig)
+                </span>
+              </div>
+              <div class="relative mt-1">
+                <input type="number" id="pressureInput" step="1" min="0" value="720" oninput="runCalculation(true)" class="w-full text-xs font-bold border border-slate-300 rounded px-2.5 py-1.5 focus:border-blue-700 outline-none text-slate-800 pr-12" />
+                <span class="absolute right-2.5 top-2 text-slate-400 text-xs pointer-events-none">psig</span>
+              </div>
+            </div>
+
+            <!-- Corrosion Allowance -->
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 flex justify-between">
+                <span>Corrosion Allowance (CA)</span>
+                <span class="text-slate-400 font-normal">in (optional)</span>
+              </label>
+              <input type="number" id="corrosionInput" step="0.001" min="0" value="0.000" oninput="runCalculation(true)" class="mt-1 w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 focus:border-blue-700 outline-none" />
+            </div>
+          </div>
+
+          <!-- Guidance Box -->
+          <div class="guidance-block bg-hdd-guide-bg border-t border-hdd-guide-border px-3.5 py-2.5 text-[11px] text-slate-700 space-y-1">
+            <div class="font-bold text-blue-700 flex items-center justify-between">
+              <span class="flex items-center gap-1">
+                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                <span id="step1GuidanceTitle">Engineering Guidance: Pressure &amp; Corrosion</span>
+              </span>
+              <a id="step1GuidanceLink" href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-L/section-192.619" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline font-normal">
+                49 CFR § 192.619 (MAOP Limits) ↗
+              </a>
+            </div>
+            <p id="step1GuidanceP1">
+              • <strong>Design Pressure (P):</strong> Must equal or exceed the pipeline Maximum Allowable Operating Pressure (MAOP) per 49 CFR § 192.619.
+            </p>
+            <p id="step1GuidanceP2">
+              • <strong>Corrosion Allowance (CA):</strong> Gas transmission lines carrying dry, dehydrated natural gas standardly specify <code>0.000"</code>. Specifying <code>≥ 0.125"</code> indicates severe wet or sour service requiring special metallurgy and NACE MR0175 compliance.
+            </p>
+          </div>
+        </div>
+
+        <!-- STEP 2: Pipe Material & Specified Minimum Yield Strength -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs overflow-hidden">
+          <div class="bg-slate-100 border-b border-hdd-border px-3.5 py-2.5 flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#102a45] flex items-center gap-2">
+              <span class="bg-[#102a45] text-white text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold">Step 2</span>
+              <span>Pipe Material &amp; Yield Strength (S)</span>
+            </h2>
+            <a id="step2RegLink" href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C/section-192.107" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline font-mono font-medium">
+              49 CFR § 192.107 ↗
+            </a>
+          </div>
+
+          <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700">API 5L Pipe Grade</label>
+              <select id="gradeSelect" onchange="handleGradeChange()" class="mt-1 w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white focus:border-blue-700 outline-none font-medium">
+                <option value="24000">Grade A (24,000 psi)</option>
+                <option value="30000">Grade A25 (30,000 psi)</option>
+                <option value="35500">Grade B (35,500 psi)</option>
+                <option value="42000">X42 (42,000 psi)</option>
+                <option value="46000">X46 (46,000 psi)</option>
+                <option value="52000" selected>X52 (52,000 psi)</option>
+                <option value="56000">X56 (56,000 psi)</option>
+                <option value="60000">X60 (60,000 psi)</option>
+                <option value="65000">X65 (65,000 psi)</option>
+                <option value="70000">X70 (70,000 psi)</option>
+                <option value="80000">X80 (80,000 psi)</option>
+                <option value="custom">Custom SMYS...</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold text-slate-700 flex justify-between">
+                <span>Specified Min. Yield Strength (S)</span>
+                <span class="text-slate-400 font-normal">psi</span>
+              </label>
+              <input type="number" id="smysInput" step="500" min="10000" value="52000" oninput="runCalculation(true)" class="mt-1 w-full text-xs font-bold border border-slate-300 rounded px-2.5 py-1.5 focus:border-blue-700 outline-none text-slate-800" />
+            </div>
+          </div>
+
+          <!-- Guidance Box -->
+          <div class="guidance-block bg-hdd-guide-bg border-t border-hdd-guide-border px-3.5 py-2.5 text-[11px] text-slate-700 space-y-1">
+            <div class="font-bold text-blue-700 flex items-center justify-between">
+              <span class="flex items-center gap-1">
+                <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                Engineering Guidance: Grade Selection Tradeoffs
+              </span>
+              <a href="https://www.api.org/products-and-services/standards" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline font-normal">
+                API Spec 5L ↗
+              </a>
+            </div>
+            <p>
+              • <strong>Grade B &amp; X42 (S ≤ 42,000 psi):</strong> Ideal for pump/compressor stations, meter skids, and manifolds. Heavier walls ease field fitting and resist vibration.
+            </p>
+            <p>
+              • <strong>X52 &amp; X60 (S = 52,000 – 60,000 psi):</strong> Industry standard balance for mainline cross-country pipelines and road crossings; excellent field weldability.
+            </p>
+            <p>
+              • <strong>X70 &amp; X80 (S ≥ 70,000 psi):</strong> Thinner wall saves freight/tonnage on long runs, but requires qualified automated welding procedures, preheat controls, and Charpy V-notch fracture toughness screening.
+            </p>
+          </div>
+        </div>
+
+        <!-- STEP 3: Regulatory Derating Factors (F, E, T) -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs overflow-hidden">
+          <div class="bg-slate-100 border-b border-hdd-border px-3.5 py-2.5 flex items-center justify-between">
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#102a45] flex items-center gap-2">
+              <span class="bg-[#102a45] text-white text-[10px] px-1.5 py-0.5 rounded font-mono font-semibold">Step 3</span>
+              <span>Regulatory Derating Factors (F, E, T)</span>
+            </h2>
+            <a id="step3RegLink" href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline font-mono font-medium">
+              49 CFR §§ 192.111–115 ↗
+            </a>
+          </div>
+
+          <div class="p-4 space-y-4">
+
+            <!-- Factor F -->
+            <div class="space-y-1.5">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
+                <div class="sm:col-span-2">
+                  <label id="labelFactorF" class="block text-[11px] font-bold text-slate-700">Class Location &amp; Design Factor (F) — § 192.111</label>
+                  <select id="classSelect" onchange="handleClassChange()" class="mt-1 w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white focus:border-blue-700 outline-none">
+                    <!-- Populated dynamically based on Gas vs Liquid -->
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-500">Factor F Value</label>
+                  <input type="number" id="factorFInput" step="0.01" min="0.1" max="1.0" value="0.72" oninput="runCalculation(true)" class="mt-1 w-full text-xs font-bold border border-slate-300 rounded px-2.5 py-1.5 focus:border-blue-700 outline-none" />
+                </div>
+              </div>
+              <div id="guidanceBoxF" class="guidance-block bg-hdd-guide-bg p-2.5 rounded border border-hdd-guide-border text-[11px] text-slate-700 space-y-1">
+                <!-- Injected dynamically based on mode -->
+              </div>
+            </div>
+
+            <!-- Factor E -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-200">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
+                <div class="sm:col-span-2">
+                  <label id="labelFactorE" class="block text-[11px] font-bold text-slate-700">Longitudinal Joint Factor (E) — § 192.113</label>
+                  <select id="jointSelect" onchange="handleJointChange()" class="mt-1 w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white focus:border-blue-700 outline-none">
+                    <option value="1.00" selected>Seamless / ERW / SAW / DSAW (E = 1.00)</option>
+                    <option value="0.80">Electric Flash Welded (E = 0.80)</option>
+                    <option value="0.60">Furnace Butt Welded / Continuous Welded (E = 0.60)</option>
+                    <option value="custom">Custom Joint Factor...</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-500">Factor E Value</label>
+                  <input type="number" id="factorEInput" step="0.01" min="0.1" max="1.0" value="1.00" oninput="runCalculation(true)" class="mt-1 w-full text-xs font-bold border border-slate-300 rounded px-2.5 py-1.5 focus:border-blue-700 outline-none" />
+                </div>
+              </div>
+              <div class="guidance-block bg-hdd-guide-bg p-2 rounded border border-hdd-guide-border text-[10.5px] text-slate-700">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-blue-700">How to choose E:</span>
+                  <a id="jointFactorLink" href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C/section-192.113" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline">
+                    Joint Factor Table ↗
+                  </a>
+                </div>
+                Modern line pipe (API 5L HFERW, DSAW, or Seamless) qualifies for <strong>E = 1.00</strong>. Pre-1970 legacy pipe (flash welded or furnace butt welded) requires derating to 0.80 or 0.60.
+              </div>
+            </div>
+
+            <!-- Factor T -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-200">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-end">
+                <div class="sm:col-span-2">
+                  <label id="labelFactorT" class="block text-[11px] font-bold text-slate-700">Operating Temperature &amp; Derating Factor (T) — § 192.115</label>
+                  <select id="tempSelect" onchange="handleTempChange()" class="mt-1 w-full text-xs border border-slate-300 rounded px-2.5 py-1.5 bg-white focus:border-blue-700 outline-none">
+                    <option value="1.000" selected>≤ 250°F (121°C) (T = 1.000)</option>
+                    <option value="0.967">300°F (149°C) (T = 0.967)</option>
+                    <option value="0.933">350°F (177°C) (T = 0.933)</option>
+                    <option value="0.900">400°F (204°C) (T = 0.900)</option>
+                    <option value="0.867">450°F (232°C) (T = 0.867)</option>
+                    <option value="custom">Custom Derating Factor...</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-semibold text-slate-500">Factor T Value</label>
+                  <input type="number" id="factorTInput" step="0.001" min="0.5" max="1.0" value="1.000" oninput="runCalculation(true)" class="mt-1 w-full text-xs font-bold border border-slate-300 rounded px-2.5 py-1.5 focus:border-blue-700 outline-none" />
+                </div>
+              </div>
+              <div class="guidance-block bg-hdd-guide-bg p-2 rounded border border-hdd-guide-border text-[10.5px] text-slate-700">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-blue-700">How to choose T:</span>
+                  <a id="tempFactorLink" href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C/section-192.115" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline">
+                    Temperature Derating Table ↗
+                  </a>
+                </div>
+                Buried pipelines operate near ambient soil temperatures (40°F – 90°F), so <strong>T = 1.000</strong> is standard. Derating only applies downstream of high-ratio compressors or heated heavy crude transport systems.
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==================== RIGHT COLUMN: OUTPUTS & SUMMARY ==================== -->
+      <div class="lg:col-span-5 space-y-4">
+
+        <!-- PRIMARY RESULT CARD -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs overflow-hidden">
+          <div class="bg-hdd-navy text-white px-3.5 py-2.5 flex justify-between items-center">
+            <div>
+              <span class="text-[9px] uppercase tracking-wider text-blue-300 font-bold block">Primary Design Output</span>
+              <h3 class="text-xs font-bold text-white uppercase">Calculated Wall Thickness</h3>
+            </div>
+            <i data-lucide="gauge" class="w-5 h-5 text-blue-300"></i>
+          </div>
+
+          <div class="p-4 bg-gradient-to-b from-[#15293e]/5 to-transparent">
+            <div class="flex items-baseline gap-2">
+              <span id="resCalcThickness" class="text-3xl font-extrabold tracking-tight text-hdd-navy font-mono">0.1034</span>
+              <span class="text-sm font-bold text-slate-600">inches (min. required)</span>
+            </div>
+            <p id="resEquationRefText" class="text-[11px] text-slate-500 mt-1">
+              Minimum nominal wall thickness calculated strictly per 49 CFR § 192.105 Barlow equation.
+            </p>
+
+            <div id="corrosionCallout" class="mt-2.5 hidden p-2 rounded bg-amber-50 border border-amber-300 text-xs text-amber-900">
+              With <span id="caDisplayVal" class="font-bold text-amber-950">0.000"</span> Corrosion Allowance:
+              <strong id="resTotalThickness" class="text-xs font-mono text-amber-950 block mt-0.5">0.1034 inches</strong>
+            </div>
+
+            <!-- Commercial Sizing Output & Utilization with Schedule Number -->
+            <div class="mt-3 pt-3 border-t border-slate-200 space-y-2">
+              <div>
+                <span class="text-[10px] uppercase font-bold text-slate-500">Next Standard Commercial Size (ASME B36.10M)</span>
+                <div class="flex items-center justify-between mt-1">
+                  <div>
+                    <span id="resCommercialSched" class="text-sm font-bold text-blue-900">0.219" nominal</span>
+                    <span id="resSchedDesignation" class="ml-1.5 text-xs font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-800 border border-blue-200">SCH 20</span>
+                  </div>
+                  <span id="resCommercialDiff" class="text-[10px] font-bold text-[#166534] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300">+0.116" margin</span>
+                </div>
+              </div>
+
+              <!-- Wall Utilization % -->
+              <div class="bg-slate-50 p-2.5 rounded border border-slate-200">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-semibold text-slate-700">Wall Utilization Ratio</span>
+                  <span id="resUtilization" class="text-sm font-bold font-mono text-[#166534]">47.2%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2 mt-1.5 overflow-hidden">
+                  <div id="utilizationBar" class="bg-[#166534] h-2 rounded-full transition-all duration-300" style="width: 47%;"></div>
+                </div>
+                <div class="flex justify-between text-[9px] text-slate-400 mt-0.5">
+                  <span>&lt;80% (Compliant)</span>
+                  <span>80–95% (Advisory)</span>
+                  <span>&gt;95% (Critical)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- HOOP STRESS VS. ALLOWABLE STRESS COMPARISON CARD -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs overflow-hidden">
+          <div class="bg-slate-100 border-b border-hdd-border px-3.5 py-2 flex items-center justify-between">
+            <h3 class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="activity" class="w-3.5 h-3.5 text-blue-700"></i>
+              Operating Hoop Stress vs. Code Allowable Limit
+            </h3>
+            <span class="text-[10px] font-mono text-slate-500">P·D / 2t</span>
+          </div>
+          <div class="p-3.5 space-y-2 text-xs">
+            <div class="grid grid-cols-2 gap-2.5">
+              <div class="bg-slate-50 p-2.5 rounded border border-slate-200">
+                <span class="text-[10px] text-slate-500 uppercase font-semibold block">Actual Hoop Stress (σ_h)</span>
+                <span id="resActualHoopStress" class="text-base font-bold font-mono text-slate-900 block mt-0.5">17,671 psi</span>
+                <span id="resHoopPercentSmys" class="text-[9.5px] text-blue-700 font-semibold block">34.0% of SMYS</span>
+              </div>
+              <div class="bg-slate-50 p-2.5 rounded border border-slate-200">
+                <span class="text-[10px] text-slate-500 uppercase font-semibold block">Code Allowable Stress (S·F·E·T)</span>
+                <span id="resCodeAllowStress" class="text-base font-bold font-mono text-blue-900 block mt-0.5">37,440 psi</span>
+                <span id="resAllowPercentSmys" class="text-[9.5px] text-slate-500 block">72.0% of SMYS</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between text-[11px] bg-emerald-50 px-2.5 py-1.5 rounded border border-emerald-200 text-[#166534]">
+              <span class="font-medium">Operating Safety Cushion:</span>
+              <strong id="resStressMargin" class="font-mono font-bold">+19,769 psi reserve</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- ENGINEERING INTERPRETATION NARRATIVE CARD -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs overflow-hidden">
+          <div class="bg-slate-100 border-b border-hdd-border px-3.5 py-2 flex items-center justify-between">
+            <h3 class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="file-text" class="w-3.5 h-3.5 text-blue-700"></i>
+              Engineering Interpretation
+            </h3>
+            <span class="text-[10px] font-semibold text-slate-500">Executive Summary</span>
+          </div>
+          <div class="p-3.5 space-y-2 text-xs">
+            <div id="narrativeHeadline" class="font-bold text-slate-800 text-[12.5px]">
+              10.750" API 5L X52 Pipeline • Design Pressure: 720 psig
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-[11px] bg-slate-50 p-2.5 rounded border border-slate-200">
+              <div>Required Wall: <strong id="narrativeReqWall" class="font-mono text-slate-900">0.103"</strong></div>
+              <div>Selected Commercial: <strong id="narrativeCommWall" class="font-mono text-slate-900">0.219"</strong></div>
+              <div>Wall Utilization: <strong id="narrativeUtil" class="font-mono text-[#166534]">47.2%</strong></div>
+              <div>Implied MAOP/MOP: <strong id="narrativeMAOP" class="font-mono text-slate-900">1526 psig</strong></div>
+            </div>
+            <p id="narrativeAssessment" class="text-slate-600 leading-relaxed text-[11px]">
+              Design is fully compliant. Selected commercial wall provides sufficient internal pressure containment under regulatory Barlow criteria.
+            </p>
+          </div>
+        </div>
+
+        <!-- HYDROTEST GUIDANCE CARD (Dual 192 / 195) -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs overflow-hidden">
+          <div class="bg-slate-100 border-b border-hdd-border px-3.5 py-2 flex items-center justify-between">
+            <h3 id="hydroCardTitle" class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="droplet" class="w-3.5 h-3.5 text-blue-700"></i>
+              Hydrotest Check (49 CFR § 192 Subpart J)
+            </h3>
+            <a id="hydroRegLink" href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-J" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline">
+              § 192.503 / 505 ↗
+            </a>
+          </div>
+          <div class="p-3.5 space-y-2.5 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-blue-50/70 p-2 rounded border border-blue-200">
+                <span class="text-[10px] text-slate-500 uppercase font-semibold block">Min. Test Factor</span>
+                <span id="hydroFactorText" class="text-sm font-bold text-blue-900 font-mono">1.25 × MAOP</span>
+                <span id="hydroBasisText" class="text-[9.5px] text-slate-500 block">Class 1 (§ 192.505)</span>
+              </div>
+              <div class="bg-blue-50/70 p-2 rounded border border-blue-200">
+                <span class="text-[10px] text-slate-500 uppercase font-semibold block">Target Hydro Test Pressure</span>
+                <span id="hydroPressureText" class="text-sm font-bold text-blue-900 font-mono">900 psig</span>
+                <span id="hydroDurationText" class="text-[9.5px] text-slate-500 block">8-hr hold § 192.505</span>
+              </div>
+            </div>
+            <p id="hydroDescriptionText" class="text-[10.5px] text-slate-600">
+              Before commissioning gas service, pipeline must undergo strength test holding at or above the target hydrotest pressure without leakage per Subpart J.
+            </p>
+          </div>
+        </div>
+
+        <!-- DESIGN PARAMETERS SUMMARY TABLE -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs overflow-hidden">
+          <div class="bg-slate-100 border-b border-hdd-border px-3.5 py-2">
+            <h3 class="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="table" class="w-3.5 h-3.5 text-blue-700"></i>
+              Design Parameters Summary
+            </h3>
+          </div>
+
+          <div class="divide-y divide-slate-200 text-xs">
+            <div class="grid grid-cols-2 px-3.5 py-2 bg-slate-50/50">
+              <span class="text-slate-500 text-[11px]">Pipe Material / Grade</span>
+              <span id="sumGrade" class="font-bold text-slate-800 text-right">API 5L X52 (52,000 psi)</span>
+            </div>
+            <div class="grid grid-cols-2 px-3.5 py-2">
+              <span class="text-slate-500 text-[11px]">Nominal Outside Diameter</span>
+              <span id="sumOD" class="font-bold text-slate-800 text-right">10.750 in</span>
+            </div>
+            <div class="grid grid-cols-2 px-3.5 py-2 bg-slate-50/50">
+              <span class="text-slate-500 text-[11px]">Commercial Wall &amp; Schedule</span>
+              <span id="sumSched" class="font-bold text-slate-800 text-right font-mono">0.219" (SCH 20)</span>
+            </div>
+            <div class="grid grid-cols-2 px-3.5 py-2">
+              <span class="text-slate-500 text-[11px]">Inside Diameter (ID)</span>
+              <span id="resPipeID" class="font-bold text-slate-800 font-mono text-right">10.312 in</span>
+            </div>
+            <div class="grid grid-cols-2 px-3.5 py-2 bg-slate-50/50">
+              <span class="text-slate-500 text-[11px]">Bare Pipe Weight</span>
+              <span id="resPipeWeight" class="font-bold text-slate-800 font-mono text-right">24.64 lb/ft</span>
+            </div>
+            <div class="grid grid-cols-2 px-3.5 py-2">
+              <span class="text-slate-500 text-[11px]">D / t Ratio</span>
+              <span id="resDtRatio" class="font-bold text-slate-800 font-mono text-right">49.1</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- MATHEMATICAL FORMULA VERIFICATION -->
+        <div class="bg-white rounded border border-hdd-border shadow-xs p-3.5 text-xs text-slate-600">
+          <h4 class="font-bold text-hdd-navy mb-2 uppercase tracking-wide flex items-center gap-1.5 text-[11px]">
+            <i data-lucide="file-check" class="w-3.5 h-3.5 text-blue-700"></i>
+            Mathematical Formula Verification
+          </h4>
+          <div class="bg-slate-50 p-2.5 rounded font-mono text-[11px] space-y-1 border border-slate-200">
+            <div><strong>Numerator (D × P):</strong> <span id="numVal">10.75 × 720 = 7,740</span></div>
+            <div><strong>Denominator (2 × S × F × E × T):</strong> <span id="denVal">2 × 52000 × 0.72 × 1.0 × 1.0 = 74,880</span></div>
+            <div class="pt-1 border-t border-slate-300 font-bold text-blue-900">
+              t = <span id="eqResult">7,740 / 74,880 = 0.1034 in</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DEDICATED TOOL LIMITATIONS & DISCLAIMER CARD -->
+        <div class="bg-slate-50 rounded border border-slate-300 shadow-xs p-3.5 text-xs text-slate-600">
+          <h4 class="font-bold text-slate-800 mb-2 uppercase tracking-wide flex items-center gap-1.5 text-[11px]">
+            <i data-lucide="shield-alert" class="w-3.5 h-3.5 text-amber-700"></i>
+            This Tool Does Not Evaluate
+          </h4>
+          <p class="text-[10.5px] text-slate-500 mb-2">
+            This application calculates internal pressure containment wall thickness using 1D Barlow formulation. Project-specific engineering must independently evaluate:
+          </p>
+          <div class="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-700 font-medium">
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> External earth loading</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> Fatigue &amp; cyclic pressure</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> Highway traffic crossings</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> Fracture mechanics / toughness</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> Railroad crossings (AREMA)</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> Seismic faults &amp; liquefaction</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> Differential settlement</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> External collapse pressure</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> Slope stability / geohazards</div>
+            <div class="flex items-center gap-1.5"><span class="text-red-600 font-bold">✖</span> Local buckling &amp; wrinkling</div>
+          </div>
+          <p class="text-[10px] text-slate-500 mt-2.5 pt-2 border-t border-slate-200">
+            *Engineer of record remains responsible for project-specific qualification under 49 CFR § 192.103 or § 195.110.
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Floating Help Circle -->
+  <button onclick="toggleGuidanceMode()" title="Toggle Junior Engineer Guide" class="fixed bottom-5 right-5 w-10 h-10 rounded-full bg-hdd-navy hover:bg-blue-900 text-white shadow-lg flex items-center justify-center font-bold text-base transition-all hover:scale-105 border-2 border-white no-print">
+    ?
+  </button>
+
+  <!-- Footer with Referenced Standards -->
+  <footer class="bg-white border-t border-hdd-border mt-8 py-4">
+    <div class="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 text-center text-[11px] text-slate-500 space-y-0.5">
+      <div class="font-semibold text-slate-700">Pipeline Design Standards Reference Architecture:</div>
+      <p id="footerStandards">
+        49 CFR Part 192 Subpart C (§§ 192.103, 192.105, 192.107, 192.111, 192.113, 192.115) • Subpart J (§ 192.505 Hydrotest) • Subpart L (§ 192.619 MAOP) • ASME B31.8 • API Spec 5L • ASME B36.10M • NACE MR0175 / ISO 15156
+      </p>
+    </div>
+  </footer>
+
+  <!-- App Calculation Engine & Interaction Logic -->
+  <script>
+    // Standard ASME B36.10M Pipe Dimensions & Schedules [thickness, schedule designation]
+    const STANDARD_PIPE_DATA = {
+      2.375: [
+        { t: 0.154, sched: 'SCH 40 / STD' },
+        { t: 0.218, sched: 'SCH 80 / XS' },
+        { t: 0.250, sched: 'SCH 160' },
+        { t: 0.344, sched: 'XXS' }
+      ],
+      3.500: [
+        { t: 0.216, sched: 'SCH 40 / STD' },
+        { t: 0.300, sched: 'SCH 80 / XS' },
+        { t: 0.438, sched: 'XXS' }
+      ],
+      4.500: [
+        { t: 0.237, sched: 'SCH 40 / STD' },
+        { t: 0.337, sched: 'SCH 80 / XS' },
+        { t: 0.438, sched: 'SCH 120' },
+        { t: 0.531, sched: 'SCH 160 / XXS' }
+      ],
+      6.625: [
+        { t: 0.188, sched: 'SCH 10' },
+        { t: 0.219, sched: 'SCH 20' },
+        { t: 0.250, sched: 'SCH 30' },
+        { t: 0.280, sched: 'SCH 40 / STD' },
+        { t: 0.312, sched: 'SCH 60' },
+        { t: 0.375, sched: 'SCH 80 / XS' },
+        { t: 0.432, sched: 'SCH 120' },
+        { t: 0.562, sched: 'SCH 160' }
+      ],
+      8.625: [
+        { t: 0.188, sched: 'SCH 10' },
+        { t: 0.219, sched: 'SCH 20' },
+        { t: 0.250, sched: 'SCH 30' },
+        { t: 0.277, sched: 'SCH 30' },
+        { t: 0.322, sched: 'SCH 40 / STD' },
+        { t: 0.375, sched: 'SCH 60' },
+        { t: 0.500, sched: 'SCH 80 / XS' },
+        { t: 0.594, sched: 'SCH 100' },
+        { t: 0.719, sched: 'SCH 120' }
+      ],
+      10.750: [
+        { t: 0.219, sched: 'SCH 20' },
+        { t: 0.250, sched: 'SCH 30' },
+        { t: 0.279, sched: 'SCH 30' },
+        { t: 0.307, sched: 'SCH 30' },
+        { t: 0.365, sched: 'SCH 40 / STD' },
+        { t: 0.500, sched: 'SCH 60 / XS' },
+        { t: 0.594, sched: 'SCH 80' },
+        { t: 0.719, sched: 'SCH 100' },
+        { t: 0.844, sched: 'SCH 120' }
+      ],
+      12.750: [
+        { t: 0.250, sched: 'SCH 20' },
+        { t: 0.281, sched: 'SCH 20' },
+        { t: 0.312, sched: 'SCH 30' },
+        { t: 0.330, sched: 'SCH 30' },
+        { t: 0.375, sched: 'SCH 40 / STD' },
+        { t: 0.406, sched: 'SCH 40' },
+        { t: 0.438, sched: 'SCH 60' },
+        { t: 0.500, sched: 'SCH 60 / XS' },
+        { t: 0.562, sched: 'SCH 80' },
+        { t: 0.688, sched: 'SCH 100' }
+      ],
+      16.000: [
+        { t: 0.250, sched: 'SCH 10' },
+        { t: 0.312, sched: 'SCH 20' },
+        { t: 0.375, sched: 'SCH 30 / STD' },
+        { t: 0.500, sched: 'SCH 40 / XS' },
+        { t: 0.656, sched: 'SCH 60' },
+        { t: 0.844, sched: 'SCH 80' },
+        { t: 1.000, sched: 'SCH 100' }
+      ],
+      20.000: [
+        { t: 0.250, sched: 'SCH 10' },
+        { t: 0.312, sched: 'SCH 10' },
+        { t: 0.375, sched: 'SCH 20 / STD' },
+        { t: 0.500, sched: 'SCH 30 / XS' },
+        { t: 0.594, sched: 'SCH 40' },
+        { t: 0.812, sched: 'SCH 60' },
+        { t: 1.031, sched: 'SCH 80' }
+      ],
+      24.000: [
+        { t: 0.250, sched: 'SCH 10' },
+        { t: 0.312, sched: 'SCH 10' },
+        { t: 0.375, sched: 'SCH 20 / STD' },
+        { t: 0.500, sched: 'SCH 30 / XS' },
+        { t: 0.562, sched: 'SCH 40' },
+        { t: 0.688, sched: 'SCH 60' },
+        { t: 0.968, sched: 'SCH 80' },
+        { t: 1.218, sched: 'SCH 100' }
+      ],
+      30.000: [
+        { t: 0.312, sched: 'SCH 10' },
+        { t: 0.375, sched: 'STD' },
+        { t: 0.438, sched: 'SCH 20' },
+        { t: 0.500, sched: 'XS' },
+        { t: 0.562, sched: 'SCH 30' },
+        { t: 0.625, sched: 'SCH 40' },
+        { t: 0.750, sched: 'SCH 60' },
+        { t: 1.000, sched: 'SCH 80' }
+      ],
+      36.000: [
+        { t: 0.375, sched: 'STD' },
+        { t: 0.438, sched: 'SCH 10' },
+        { t: 0.500, sched: 'XS' },
+        { t: 0.562, sched: 'SCH 20' },
+        { t: 0.625, sched: 'SCH 30' },
+        { t: 0.750, sched: 'SCH 40' },
+        { t: 0.875, sched: 'SCH 60' },
+        { t: 1.000, sched: 'SCH 80' }
+      ],
+      42.000: [
+        { t: 0.438, sched: 'SCH 10' },
+        { t: 0.500, sched: 'STD / XS' },
+        { t: 0.562, sched: 'SCH 20' },
+        { t: 0.625, sched: 'SCH 30' },
+        { t: 0.750, sched: 'SCH 40' },
+        { t: 0.875, sched: 'SCH 60' },
+        { t: 1.000, sched: 'SCH 80' }
+      ]
+    };
+
+    let guidanceVisible = true;
+    let currentService = 'gas'; // 'gas' or 'liquid'
+
+    function init() {
+      lucide.createIcons();
+      populateDesignFactorOptions();
+      calculate(false);
+    }
+
+    function handleServiceChange() {
+      const radios = document.getElementsByName('commodityService');
+      for (const r of radios) {
+        if (r.checked) currentService = r.value;
+      }
+
+      const isGas = currentService === 'gas';
+
+      // Update top header badges
+      document.getElementById('serviceBadge').innerText = isGas ? '49 CFR Part 192 (Gas)' : '49 CFR Part 195 (Liquid)';
+      document.getElementById('serviceSubtitle').innerText = isGas 
+        ? 'Natural Gas Transmission Pipe Wall Thickness & Regulatory Pressure Design'
+        : 'Hazardous Liquids / Petroleum Transmission Pipe Wall Thickness & Pressure Design';
+
+      // Update regulation cross links
+      document.getElementById('step1RegLink').innerText = isGas ? '49 CFR § 192.105 ↗' : '49 CFR § 195.106 ↗';
+      document.getElementById('step1RegLink').href = isGas 
+        ? 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C/section-192.105'
+        : 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-C/section-195.106';
+
+      document.getElementById('labelPressure').innerText = isGas ? 'Design Pressure (P) / MAOP' : 'Internal Design Pressure (P) / MOP';
+
+      document.getElementById('step1GuidanceTitle').innerText = isGas 
+        ? 'Engineering Guidance: Pressure & Corrosion (Gas)' 
+        : 'Engineering Guidance: Pressure & Surge Margin (Liquid)';
+      document.getElementById('step1GuidanceLink').innerText = isGas ? '49 CFR § 192.619 (MAOP Limits) ↗' : '49 CFR § 195.406 (MOP & Surges) ↗';
+      document.getElementById('step1GuidanceLink').href = isGas 
+        ? 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-L/section-192.619'
+        : 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-F/section-195.406';
+
+      document.getElementById('step1GuidanceP1').innerHTML = isGas
+        ? '• <strong>Design Pressure (P):</strong> Must equal or exceed the pipeline Maximum Allowable Operating Pressure (MAOP) per 49 CFR § 192.619.'
+        : '• <strong>Design Pressure (P):</strong> Must equal or exceed Maximum Operating Pressure (MOP) per § 195.406. Account for liquid column static head elevations and potential surge/water hammer transience.';
+
+      document.getElementById('step1GuidanceP2').innerHTML = isGas
+        ? '• <strong>Corrosion Allowance (CA):</strong> Gas transmission lines carrying dry natural gas standardly specify <code>0.000"</code>. Specifying <code>≥ 0.125"</code> indicates severe wet or sour service requiring NACE MR0175 compliance.'
+        : '• <strong>Corrosion Allowance (CA):</strong> Liquid lines handling crude oil or multiphase hydrocarbons may require <code>0.063" - 0.125"</code> corrosion allowance if water dropout or microbiological influenced corrosion (MIC) is anticipated.';
+
+      document.getElementById('step2RegLink').innerText = isGas ? '49 CFR § 192.107 ↗' : '49 CFR § 195.106(a) ↗';
+      document.getElementById('step2RegLink').href = isGas 
+        ? 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C/section-192.107'
+        : 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-C/section-195.106';
+
+      document.getElementById('step3RegLink').innerText = isGas ? '49 CFR §§ 192.111–115 ↗' : '49 CFR § 195.106 Factors ↗';
+      document.getElementById('step3RegLink').href = isGas 
+        ? 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C'
+        : 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-C/section-195.106';
+
+      document.getElementById('labelFactorF').innerText = isGas 
+        ? 'Class Location & Design Factor (F) — § 192.111' 
+        : 'Design Factor (F) — § 195.106';
+
+      document.getElementById('labelFactorE').innerText = isGas 
+        ? 'Longitudinal Joint Factor (E) — § 192.113' 
+        : 'Longitudinal Joint Factor (E) — § 195.106(e)';
+
+      document.getElementById('labelFactorT').innerText = isGas 
+        ? 'Operating Temperature & Derating Factor (T) — § 192.115' 
+        : 'Temperature Derating Factor (T) — ASME B31.4';
+
+      document.getElementById('resEquationRefText').innerText = isGas
+        ? 'Minimum nominal wall thickness calculated strictly per 49 CFR § 192.105 Barlow equation.'
+        : 'Minimum nominal wall thickness calculated strictly per 49 CFR § 195.106 Barlow equation.';
+
+      // Hydrotest card updates
+      document.getElementById('hydroCardTitle').innerHTML = isGas
+        ? '<i data-lucide="droplet" class="w-3.5 h-3.5 text-blue-700"></i> Hydrotest Check (49 CFR § 192 Subpart J)'
+        : '<i data-lucide="droplet" class="w-3.5 h-3.5 text-blue-700"></i> Hydrotest Check (49 CFR § 195 Subpart E)';
+      document.getElementById('hydroRegLink').innerText = isGas ? '§ 192.503 / 505 ↗' : '§ 195.304 / 306 ↗';
+      document.getElementById('hydroRegLink').href = isGas
+        ? 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-J'
+        : 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-E';
+
+      document.getElementById('footerStandards').innerText = isGas
+        ? '49 CFR Part 192 Subpart C (§§ 192.103, 192.105, 192.107, 192.111, 192.113, 192.115) • Subpart J (§ 192.505 Hydrotest) • Subpart L (§ 192.619 MAOP) • ASME B31.8 • API Spec 5L • ASME B36.10M • NACE MR0175 / ISO 15156'
+        : '49 CFR Part 195 Subpart C (§§ 195.106, 195.110) • Subpart E (§§ 195.304, 195.306 Hydrotest) • Subpart F (§ 195.406 MOP) • ASME B31.4 • API Spec 5L • ASME B36.10M • NACE MR0175 / ISO 15156';
+
+      populateDesignFactorOptions();
+      runCalculation(true);
+    }
+
+    function populateDesignFactorOptions() {
+      const select = document.getElementById('classSelect');
+      const fInput = document.getElementById('factorFInput');
+      const guidanceBox = document.getElementById('guidanceBoxF');
+      const isGas = currentService === 'gas';
+
+      select.innerHTML = '';
+      if (isGas) {
+        select.innerHTML = `
+          <option value="0.72" selected>Class 1, Div 2 (F = 0.72 — General Rural)</option>
+          <option value="0.80">Class 1, Div 1 (F = 0.80 — Alternative MAOP § 192.620)</option>
+          <option value="0.60">Class 2 (F = 0.60 — Fringe Suburban / Crossings)</option>
+          <option value="0.50">Class 3 (F = 0.50 — Commercial / Residential > 46 bldgs)</option>
+          <option value="0.40">Class 4 (F = 0.40 — Dense Urban / Multi-story Buildings)</option>
+          <option value="custom">Custom Design Factor...</option>
+        `;
+        fInput.value = '0.72';
+        guidanceBox.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-blue-700">Gas Class Location Determination:</span>
+            <a href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-A/section-192.5" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline">
+              49 CFR § 192.5 ↗
+            </a>
+          </div>
+          <span>Count human-occupied buildings within a <strong>sliding 1-mile length by 220-yard (660 ft) width zone</strong>:</span>
+          <ul class="list-disc pl-4 space-y-0.5 mt-0.5 text-[10.5px]">
+            <li><strong>Class 1 (F = 0.72):</strong> 10 or fewer buildings intended for human occupancy.</li>
+            <li><strong>Class 2 (F = 0.60):</strong> 11 to 45 buildings. Often applies to highway and railroad crossing zones.</li>
+            <li><strong>Class 3 (F = 0.50):</strong> 46+ buildings, or within 100 yards of public gathering facilities.</li>
+            <li><strong>Class 4 (F = 0.40):</strong> 4-story or taller buildings prevalent (dense urban centers).</li>
+          </ul>
+        `;
+      } else {
+        select.innerHTML = `
+          <option value="0.72" selected>Standard Liquid Transmission Line (F = 0.72 — § 195.106)</option>
+          <option value="0.80">Alternative Liquid Pipeline Design (F = 0.80 — § 195.106(b))</option>
+          <option value="0.60">Piping at Crossings / Offshore / Station Proximity (F = 0.60)</option>
+          <option value="0.50">Pump Stations / Terminals / Regulated Marine Yards (F = 0.50)</option>
+          <option value="custom">Custom Design Factor...</option>
+        `;
+        fInput.value = '0.72';
+        guidanceBox.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-bold text-blue-700">Hazardous Liquid Design Factors:</span>
+            <a href="https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-C/section-195.106" target="_blank" rel="noopener noreferrer" class="text-[11px] text-blue-700 hover:text-blue-900 hover:underline">
+              49 CFR § 195.106 ↗
+            </a>
+          </div>
+          <span>Unlike gas pipelines, Part 195 liquid lines do not use population class locations (Class 1–4) for wall thickness:</span>
+          <ul class="list-disc pl-4 space-y-0.5 mt-0.5 text-[10.5px]">
+            <li><strong>Standard Mainline (F = 0.72):</strong> Baseline design factor for cross-country liquid pipelines per § 195.106.</li>
+            <li><strong>High Consequence Areas (HCAs):</strong> Covered under § 195.452 integrity management. Extra wall thickness may be specified for environmental security.</li>
+            <li><strong>Crossings &amp; Stations (F = 0.50 - 0.60):</strong> Recommended inside pump station boundaries, manifold headers, and sensitive river crossing zones.</li>
+          </ul>
+        `;
+      }
+    }
+
+    function runCalculation(isUserAction) {
+      if (isUserAction) {
+        const dateEl = document.getElementById('calcDate');
+        if (dateEl) {
+          const now = new Date();
+          const year = now.getFullYear();
+          const month = String(now.getMonth() + 1).padStart(2, '0');
+          const day = String(now.getDate()).padStart(2, '0');
+          const localToday = `${year}-${month}-${day}`;
+          dateEl.value = localToday;
+          const statusEl = document.getElementById('dateStatus');
+          if (statusEl) {
+            statusEl.innerText = `Updated on run (${localToday})`;
+            statusEl.className = 'text-[9px] text-emerald-600 font-semibold';
+          }
+        }
+      }
+      calculate();
+    }
+
+    function toggleGuidanceMode() {
+      guidanceVisible = !guidanceVisible;
+      const blocks = document.querySelectorAll('.guidance-block');
+      blocks.forEach(b => {
+        b.style.display = guidanceVisible ? 'block' : 'none';
+      });
+      const btn = document.getElementById('guidanceToggleBtn');
+      if (guidanceVisible) {
+        btn.innerHTML = '<i data-lucide="book-open" class="w-3.5 h-3.5"></i> Guidance: ON';
+        btn.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#254b77] hover:bg-[#2d588a] text-white border border-[#3b679b] transition font-medium';
+      } else {
+        btn.innerHTML = '<i data-lucide="book-open" class="w-3.5 h-3.5"></i> Guidance: OFF';
+        btn.className = 'flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#1e3856] hover:bg-[#27466b] text-slate-300 border border-[#31537a] transition';
+      }
+      lucide.createIcons();
+    }
+
+    function handleNpsChange() {
+      const select = document.getElementById('npsSelect');
+      const odInput = document.getElementById('odInput');
+      if (select.value !== 'custom') {
+        odInput.value = select.value;
+      }
+      runCalculation(true);
+    }
+
+    function handleGradeChange() {
+      const select = document.getElementById('gradeSelect');
+      const smysInput = document.getElementById('smysInput');
+      if (select.value !== 'custom') {
+        smysInput.value = select.value;
+      }
+      runCalculation(true);
+    }
+
+    function handleClassChange() {
+      const select = document.getElementById('classSelect');
+      const fInput = document.getElementById('factorFInput');
+      if (select.value !== 'custom') {
+        fInput.value = select.value;
+      }
+      runCalculation(true);
+    }
+
+    function handleJointChange() {
+      const select = document.getElementById('jointSelect');
+      const eInput = document.getElementById('factorEInput');
+      if (select.value !== 'custom') {
+        eInput.value = select.value;
+      }
+      runCalculation(true);
+    }
+
+    function handleTempChange() {
+      const select = document.getElementById('tempSelect');
+      const tInput = document.getElementById('factorTInput');
+      if (select.value !== 'custom') {
+        tInput.value = select.value;
+      }
+      runCalculation(true);
+    }
+
+    function resetDefaults() {
+      document.getElementById('caseName').value = '';
+      document.getElementById('engineerName').value = '';
+      document.getElementById('calcDate').value = '';
+      const statusEl = document.getElementById('dateStatus');
+      if (statusEl) {
+        statusEl.innerText = 'Stamps on calculation run';
+        statusEl.className = 'text-[9px] text-slate-400 font-normal';
+      }
+
+      // Initial clean launch parameters: NPS 10, D=10.750", 720 psig, X52, F=0.72, E=1.00, T=1.000, 0 warnings
+      document.getElementById('npsSelect').value = '10.750';
+      document.getElementById('odInput').value = '10.750';
+      document.getElementById('pressureInput').value = '720';
+      document.getElementById('corrosionInput').value = '0.000';
+      document.getElementById('gradeSelect').value = '52000';
+      document.getElementById('smysInput').value = '52000';
+      document.getElementById('classSelect').value = '0.72';
+      document.getElementById('factorFInput').value = '0.72';
+      document.getElementById('jointSelect').value = '1.00';
+      document.getElementById('factorEInput').value = '1.00';
+      document.getElementById('tempSelect').value = '1.000';
+      document.getElementById('factorTInput').value = '1.000';
+      calculate();
+    }
+
+    function calculate() {
+      const D = parseFloat(document.getElementById('odInput').value) || 0;
+      const P = parseFloat(document.getElementById('pressureInput').value) || 0;
+      const S = parseFloat(document.getElementById('smysInput').value) || 0;
+      const F = parseFloat(document.getElementById('factorFInput').value) || 0;
+      const E = parseFloat(document.getElementById('factorEInput').value) || 0;
+      const T = parseFloat(document.getElementById('factorTInput').value) || 0;
+      const CA = parseFloat(document.getElementById('corrosionInput').value) || 0;
+
+      // Update Pressure Class Badge
+      updatePressureClassBadge(P);
+
+      const denom = 2 * S * F * E * T;
+      let t_calc = 0;
+
+      if (denom > 0 && D > 0 && P > 0) {
+        t_calc = (P * D) / denom;
+      }
+
+      const total_t = t_calc + CA;
+
+      // Primary output
+      document.getElementById('resCalcThickness').innerText = t_calc.toFixed(4);
+
+      const corrosionBox = document.getElementById('corrosionCallout');
+      if (CA > 0) {
+        corrosionBox.classList.remove('hidden');
+        document.getElementById('caDisplayVal').innerText = CA.toFixed(3) + '"';
+        document.getElementById('resTotalThickness').innerText = total_t.toFixed(4) + ' inches';
+      } else {
+        corrosionBox.classList.add('hidden');
+      }
+
+      // Find commercial size and get selected thickness and schedule designation
+      const commPipe = findCommercialPipe(D, total_t);
+      const commThickness = commPipe.t;
+      const commSchedName = commPipe.sched;
+      const t_for_wt = commThickness > 0 ? commThickness : (total_t > 0 ? total_t : t_calc);
+
+      // Implied MAOP/MOP for selected commercial wall
+      const impliedPressure = D > 0 ? (2 * S * F * E * T * t_for_wt) / D : 0;
+
+      // Actual Hoop Stress vs. Code Allowable Stress
+      const actualHoopStress = (commThickness > 0 && D > 0 && P > 0) ? (P * D) / (2 * commThickness) : 0;
+      const allowableStress = S * F * E * T;
+      const stressMargin = allowableStress - actualHoopStress;
+      const hoopPercentSmys = S > 0 ? (actualHoopStress / S) * 100 : 0;
+      const allowPercentSmys = S > 0 ? (allowableStress / S) * 100 : 0;
+
+      document.getElementById('resActualHoopStress').innerText = Math.round(actualHoopStress).toLocaleString() + ' psi';
+      document.getElementById('resHoopPercentSmys').innerText = hoopPercentSmys.toFixed(1) + '% of SMYS';
+      document.getElementById('resCodeAllowStress').innerText = Math.round(allowableStress).toLocaleString() + ' psi';
+      document.getElementById('resAllowPercentSmys').innerText = allowPercentSmys.toFixed(1) + '% of SMYS';
+
+      const marginEl = document.getElementById('resStressMargin');
+      if (stressMargin >= 0) {
+        marginEl.innerText = `+${Math.round(stressMargin).toLocaleString()} psi reserve`;
+        marginEl.className = 'font-mono font-bold text-[#166534]';
+      } else {
+        marginEl.innerText = `${Math.round(stressMargin).toLocaleString()} psi OVERSTRESS`;
+        marginEl.className = 'font-mono font-bold text-[#DC2626]';
+      }
+
+      // Wall Utilization %
+      let utilization = 0;
+      if (commThickness > 0 && total_t > 0) {
+        utilization = (total_t / commThickness) * 100;
+      }
+      const utilEl = document.getElementById('resUtilization');
+      const utilBar = document.getElementById('utilizationBar');
+      utilEl.innerText = utilization > 0 ? utilization.toFixed(1) + '%' : '--%';
+      utilBar.style.width = Math.min(100, Math.max(5, utilization)) + '%';
+
+      if (utilization > 95) {
+        utilEl.className = 'text-sm font-bold font-mono text-[#DC2626]';
+        utilBar.className = 'bg-[#DC2626] h-2 rounded-full transition-all duration-300';
+      } else if (utilization >= 80) {
+        utilEl.className = 'text-sm font-bold font-mono text-[#D97706]';
+        utilBar.className = 'bg-[#D97706] h-2 rounded-full transition-all duration-300';
+      } else {
+        utilEl.className = 'text-sm font-bold font-mono text-[#166534]';
+        utilBar.className = 'bg-[#166534] h-2 rounded-full transition-all duration-300';
+      }
+
+      // Hydrotest Calculations
+      updateHydrotest(P, F);
+
+      // Section properties
+      const id = Math.max(0, D - 2 * t_for_wt);
+      document.getElementById('resPipeID').innerText = id.toFixed(3) + ' in';
+      document.getElementById('sumOD').innerText = D.toFixed(3) + ' in';
+      document.getElementById('sumSched').innerText = `${commThickness.toFixed(3)}" (${commSchedName})`;
+
+      // Pipe grade summary text
+      const gradeSel = document.getElementById('gradeSelect');
+      const gradeText = gradeSel.options[gradeSel.selectedIndex]?.text || `${S.toLocaleString()} psi`;
+      document.getElementById('sumGrade').innerText = gradeText;
+
+      const pipeWeight = 10.69 * (D - t_for_wt) * t_for_wt;
+      document.getElementById('resPipeWeight').innerText = pipeWeight > 0 ? pipeWeight.toFixed(2) + ' lb/ft' : '--';
+
+      const dtRatio = t_for_wt > 0 ? (D / t_for_wt) : 0;
+      document.getElementById('resDtRatio').innerText = dtRatio > 0 ? dtRatio.toFixed(1) : '--';
+
+      // Formula breakdown
+      document.getElementById('numVal').innerText = `${D.toFixed(3)} × ${P.toFixed(0)} = ${(D * P).toLocaleString(undefined, {maximumFractionDigits: 1})}`;
+      document.getElementById('denVal').innerText = `2 × ${S.toLocaleString()} × ${F.toFixed(2)} × ${E.toFixed(2)} × ${T.toFixed(3)} = ${Math.round(denom).toLocaleString()}`;
+      document.getElementById('eqResult').innerText = `${(D * P).toLocaleString(undefined, {maximumFractionDigits: 1})} / ${Math.round(denom).toLocaleString()} = ${t_calc.toFixed(4)} in`;
+
+      // Narrative Update
+      updateEngineeringNarrative(D, gradeText, P, total_t, commThickness, commSchedName, utilization, impliedPressure, F);
+
+      // Warning and Safety Diagnostics
+      evaluateDiagnostics(D, t_for_wt, dtRatio, F, T, S, P, impliedPressure, CA, utilization);
+      lucide.createIcons();
+    }
+
+    function updatePressureClassBadge(P) {
+      const badge = document.getElementById('pressureClassBadge');
+      if (P < 150) {
+        badge.innerText = 'LOW PRESSURE (< 150 psig)';
+        badge.className = 'text-[9.5px] font-mono px-1.5 py-0.5 rounded font-semibold bg-emerald-100 text-[#166534] border border-emerald-300';
+      } else if (P <= 1000) {
+        badge.innerText = 'MID PRESSURE (150–1000 psig)';
+        badge.className = 'text-[9.5px] font-mono px-1.5 py-0.5 rounded font-semibold bg-blue-100 text-blue-700 border border-blue-200';
+      } else {
+        badge.innerText = 'HIGH PRESSURE (> 1000 psig)';
+        badge.className = 'text-[9.5px] font-mono px-1.5 py-0.5 rounded font-semibold bg-purple-100 text-purple-700 border border-purple-300';
+      }
+    }
+
+    function updateHydrotest(P, F) {
+      const isGas = currentService === 'gas';
+      let testFactor = 1.25;
+      let basisText = 'Class 1 (§ 192.505)';
+      let durationText = '8-hr hold § 192.505';
+      let descText = 'Before commissioning gas service, pipeline must undergo strength test holding at or above the target hydrotest pressure without leakage per Subpart J.';
+
+      if (isGas) {
+        if (F <= 0.40) {
+          testFactor = 1.50;
+          basisText = 'Class 4 (§ 192.505)';
+        } else if (F <= 0.50) {
+          testFactor = 1.50;
+          basisText = 'Class 3 (§ 192.505)';
+        } else if (F <= 0.60) {
+          testFactor = 1.25;
+          basisText = 'Class 2 (§ 192.505)';
+        }
+      } else {
+        testFactor = 1.25;
+        basisText = 'Liquid Mainline (§ 195.304)';
+        durationText = '4-hr to 8-hr hold § 195.306';
+        descText = 'Liquid pipelines must be hydrostatic pressure tested to at least 125% of MOP for 4 continuous hours (or 8 hours if visual examination of pipe joints is not conducted) per 49 CFR § 195.306.';
+      }
+
+      const hydroPressure = Math.round(P * testFactor);
+      document.getElementById('hydroFactorText').innerText = `${testFactor.toFixed(2)} × ${isGas ? 'MAOP' : 'MOP'}`;
+      document.getElementById('hydroBasisText').innerText = basisText;
+      document.getElementById('hydroPressureText').innerText = `${hydroPressure.toLocaleString()} psig`;
+      document.getElementById('hydroDurationText').innerText = durationText;
+      document.getElementById('hydroDescriptionText').innerText = descText;
+    }
+
+    function updateEngineeringNarrative(D, gradeText, P, total_t, commThickness, commSchedName, utilization, impliedPressure, F) {
+      const isGas = currentService === 'gas';
+      const pTerm = isGas ? 'MAOP' : 'MOP';
+
+      document.getElementById('narrativeHeadline').innerText = `${D.toFixed(3)}" ${gradeText} • Design Pressure: ${P.toFixed(0)} psig (${isGas ? 'Gas 192' : 'Liquid 195'})`;
+      document.getElementById('narrativeReqWall').innerText = `${total_t.toFixed(3)}"`;
+      document.getElementById('narrativeCommWall').innerText = `${commThickness.toFixed(3)}" (${commSchedName})`;
+      document.getElementById('narrativeUtil').innerText = `${utilization.toFixed(1)}%`;
+      document.getElementById('narrativeMAOP').innerText = `${Math.round(impliedPressure).toLocaleString()} psig`;
+
+      const utilEl = document.getElementById('narrativeUtil');
+      if (utilization > 95) {
+        utilEl.className = 'font-mono text-[#DC2626] font-bold';
+      } else if (utilization >= 80) {
+        utilEl.className = 'font-mono text-[#D97706] font-bold';
+      } else {
+        utilEl.className = 'font-mono text-[#166534] font-bold';
+      }
+
+      let serviceScope = 'rural Class 1 natural gas transmission service';
+      if (isGas) {
+        if (F <= 0.40) serviceScope = 'dense urban Class 4 gas distribution/transmission';
+        else if (F <= 0.50) serviceScope = 'suburban/commercial Class 3 gas service';
+        else if (F <= 0.60) serviceScope = 'fringe suburban Class 2 gas service';
+      } else {
+        serviceScope = 'cross-country hazardous liquid / petroleum transmission pipeline service';
+      }
+
+      let assessment = `Suitable for ${serviceScope}. Selected commercial wall provides ${(commThickness - total_t).toFixed(3)}" margin with an implied ${pTerm} of ${Math.round(impliedPressure).toLocaleString()} psig.`;
+      if (utilization > 95) {
+        assessment = `High wall utilization (${utilization.toFixed(1)}%). Although mathematically compliant, the design leaves very little margin for mill manufacturing undertolerance (-12.5% API 5L allowance) or incidental overpressure.`;
+      } else if (utilization < 40) {
+        assessment = `Low wall utilization (${utilization.toFixed(1)}%). Selected wall thickness significantly exceeds minimum code pressure requirements. Review if extra steel is warranted for construction handling, external trench loads, or future expansion.`;
+      }
+      document.getElementById('narrativeAssessment').innerText = assessment;
+    }
+
+    function evaluateDiagnostics(D, t, dtRatio, F, T, S, P, impliedPressure, CA, utilization) {
+      const topBanner = document.getElementById('topBannerReview');
+      const topIcon = document.getElementById('topBannerIcon');
+      const topTitle = document.getElementById('topBannerTitle');
+      const topBadge = document.getElementById('topBannerBadge');
+      const issuesBox = document.getElementById('topBannerIssuesBox');
+
+      const isGas = currentService === 'gas';
+      issuesBox.innerHTML = '';
+      let warnings = [];
+
+      // Check 1: CRITICAL MAOP/MOP Cross-Check Warning
+      if (P > impliedPressure && impliedPressure > 0) {
+        warnings.push({
+          level: 'critical',
+          code: 'ERR-PRESSURE-EXCEEDED',
+          title: `CRITICAL: Design Pressure (${P} psig) Exceeds Allowable Commercial Wall ${isGas ? 'MAOP' : 'MOP'} (${Math.round(impliedPressure)} psig)`,
+          standard: isGas ? '49 CFR § 192.619' : '49 CFR § 195.406',
+          url: isGas 
+            ? 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-L/section-192.619'
+            : 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-F/section-195.406',
+          reason: `Entered Design Pressure exceeds pressure containment capability for the commercial wall thickness (${isGas ? '§ 192.619' : '§ 195.406'} violation).`,
+          action: `• Increase commercial wall thickness  • Reduce ${isGas ? 'MAOP' : 'MOP'}  • Increase pipe steel grade`
+        });
+      }
+
+      // Check 2: API 5L Mill Manufacturing Tolerance Warning (Utilization > 87.5%)
+      if (utilization > 87.5) {
+        warnings.push({
+          level: 'advisory',
+          code: 'ADV-MILL-TOLERANCE',
+          title: `Manufacturing Tolerance Review (Utilization = ${utilization.toFixed(1)}% > 87.5%)`,
+          standard: 'API Spec 5L Section 9.11',
+          url: 'https://www.api.org/products-and-services/standards',
+          reason: 'API 5L allows up to -12.5% wall thickness under-tolerance during pipe extrusion and roll-forming. A high utilization design may become non-compliant if actual pipe is delivered at minimum mill tolerance.',
+          action: 'Verify that the selected commercial wall remains adequate after applying the -12.5% mill tolerance reduction, or specify tighter purchase order under-tolerance specifications.'
+        });
+      }
+
+      // Check 3: Extremely Low Utilization Warning (Over-Conservative Steel)
+      if (utilization > 0 && utilization < 40) {
+        warnings.push({
+          level: 'advisory',
+          code: 'ADV-LOW-UTILIZATION',
+          title: `Wall Thickness May Be Over-Conservative (Utilization = ${utilization.toFixed(1)}% < 40%)`,
+          standard: 'Engineering Economics & ASME B31.8 / B31.4',
+          url: 'https://www.asme.org',
+          reason: 'Selected commercial wall thickness substantially exceeds minimum regulatory pressure requirements. Reviewers and project managers frequently scrutinize whether excess steel capital expense is necessary.',
+          action: 'Review whether extra thickness is deliberately intended for mechanical handling, HDD river crossings, external traffic loads, or future pressure up-rating.'
+        });
+      }
+
+      // Check 4: Grade Selection Warning (Common)
+      if (S >= 70000) {
+        warnings.push({
+          level: 'advisory',
+          code: 'ADV-HIGH-STRENGTH',
+          title: `High Strength Material Selected (SMYS = ${S.toLocaleString()} psi ≥ X70)`,
+          standard: `API Spec 5L & ${isGas ? 'ASME B31.8' : 'ASME B31.4'}`,
+          url: 'https://www.api.org/products-and-services/standards',
+          reason: 'High-strength steel (X70/X80) reduces wall thickness but introduces brittleness and welding risks.',
+          action: 'Verify Charpy V-notch fracture toughness requirements, qualified automated weld procedures, and client Operator Approved Manufacturer List (AML).'
+        });
+      }
+
+      // Check 5: Sour / Aggressive Fluid Service Warning (Common)
+      if (CA >= 0.125) {
+        warnings.push({
+          level: 'advisory',
+          code: 'ADV-SOUR-SERVICE',
+          title: `Potential Sour / Wet Service Design (CA = ${CA.toFixed(3)}" ≥ 0.125")`,
+          standard: `NACE MR0175 / ISO 15156 & ${isGas ? '§ 192.475' : '§ 195.579'}`,
+          url: isGas
+            ? 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-I/section-192.475'
+            : 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-H/section-195.579',
+          reason: 'High corrosion allowance indicates aggressive wet, sour, or heavy multiphase fluid containing H₂S or CO₂.',
+          action: 'Review NACE MR0175 material compatibility, evaluate HIC/SSCC sulfide stress cracking risk, and verify internal chemical inhibitor programs.'
+        });
+      }
+
+      // Check 6: D/t Ratio Thin-Wall Buckling Risk (Common)
+      if (dtRatio > 96) {
+        warnings.push({
+          level: 'critical',
+          code: 'ERR-DT-BUCKLE',
+          title: `Excessive Thin-Wall Buckling Risk (D/t = ${dtRatio.toFixed(1)} > 96)`,
+          standard: `${isGas ? 'ASME B31.8 § 841.1.1' : 'ASME B31.4 § 403.2.1'} & API 5L`,
+          url: isGas
+            ? 'https://www.asme.org/codes-standards/find-codes-standards/b31-8-gas-transmission-distribution-piping-systems'
+            : 'https://www.asme.org/codes-standards/find-codes-standards/b31-4-pipeline-transportation-systems-liquid-hydrocarbons',
+          reason: 'Pipelines with D/t > 96 are highly vulnerable to ovalization, trench collapse, and field-bending wrinkles.',
+          action: 'Select a thicker commercial wall schedule or reduce pipe diameter if flow hydraulics allow.'
+        });
+      } else if (dtRatio > 50) {
+        warnings.push({
+          level: 'advisory',
+          code: 'ADV-DT-HANDLING',
+          title: `High D/t Handling Advisory (D/t = ${dtRatio.toFixed(1)} > 50)`,
+          standard: 'PRCI Guidelines & API RP 5L1',
+          url: 'https://www.prci.org',
+          reason: 'Thin pipe walls risk out-of-round distortion during transit and open-trench stringing.',
+          action: 'Ensure contractor uses padded slings, internal alignment clamps, and evaluate trench backfill loads.'
+        });
+      }
+
+      // Check 7: Elevated Temperature Derating Active (Common)
+      if (T < 1.000) {
+        warnings.push({
+          level: 'advisory',
+          code: 'REQ-TEMP-DERATE',
+          title: `Thermal Derating Active (T = ${T.toFixed(3)})`,
+          standard: isGas ? '49 CFR § 192.115' : 'ASME B31.4 Table 403.2.1-1',
+          url: isGas 
+            ? 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-C/section-192.115'
+            : 'https://www.asme.org',
+          reason: 'Operating temperatures exceed 250°F (121°C), reducing steel yield strength.',
+          action: 'Verify if downstream coolers bring temperature below 250°F so T factor can be restored to 1.000.'
+        });
+      }
+
+      // --- GAS-SPECIFIC CHECKS ---
+      if (isGas) {
+        if (F > 0.72) {
+          warnings.push({
+            level: 'critical',
+            code: 'REQ-CFR-192.620',
+            title: `Alternative High Design Factor Selected (F = ${F.toFixed(2)} > 0.72)`,
+            standard: '49 CFR § 192.620',
+            url: 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-192/subpart-L/section-192.620',
+            reason: 'Federal gas regulations strictly govern operating pipelines above 72% SMYS, requiring extensive verification.',
+            action: 'Confirm line pipe includes CVN toughness testing, 100% girth weld non-destructive examination, and specialized hydrostatic spike testing.'
+          });
+        }
+      }
+
+      // --- LIQUID-SPECIFIC CHECKS ---
+      if (!isGas) {
+        // Liquid Alternative MOP Check
+        if (F > 0.72) {
+          warnings.push({
+            level: 'critical',
+            code: 'REQ-CFR-195.106B',
+            title: `Alternative Liquid Design Factor Selected (F = ${F.toFixed(2)} > 0.72)`,
+            standard: '49 CFR § 195.106(b)',
+            url: 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-C/section-195.106',
+            reason: 'Operating liquid lines up to 80% SMYS requires meeting all special requirements of 49 CFR § 195.106(b) and § 195.452 HCA integrity rules.',
+            action: 'Verify pipeline has baseline in-line inspection (ILI), depth of cover ≥ 48 inches, and supervisory control systems.'
+          });
+        }
+
+        // Liquid Pressure Surge / Water Hammer Check (49 CFR § 195.406(b))
+        if (P > 0 && t > 0) {
+          const hoopStressAtP = (P * D) / (2 * t);
+          const surgeStress = hoopStressAtP * 1.10; // 110% surge
+          if (surgeStress > S) {
+            warnings.push({
+              level: 'critical',
+              code: 'ERR-LIQUID-SURGE-OVERSTRESS',
+              title: `CRITICAL: 110% Transient Surge Stress (${Math.round(surgeStress).toLocaleString()} psi) Exceeds 100% SMYS (${S.toLocaleString()} psi)`,
+              standard: '49 CFR § 195.406(b)',
+              url: 'https://www.ecfr.gov/current/title-49/subtitle-B/chapter-I/subchapter-D/part-195/subpart-F/section-195.406',
+              reason: 'Per 49 CFR § 195.406(b), surge pressures may not exceed 110% of MOP, nor may they cause hoop stress to exceed yield strength.',
+              action: '• Increase commercial wall thickness  • Lower operating MOP  • Install fast-acting surge relief skids'
+            });
+          }
+        }
+      }
+
+      // Render Top Banner based on 4-Tier Hierarchy (Compliant: Green, Info: Blue, Advisory: Amber, Critical: Red)
+      if (warnings.length === 0) {
+        topBanner.className = 'rounded border border-emerald-300 bg-emerald-50/80 p-3 shadow-xs';
+        topIcon.setAttribute('data-lucide', 'shield-check');
+        topIcon.className = 'w-4 h-4 text-[#166534]';
+        topTitle.className = 'font-bold text-xs uppercase tracking-wide text-[#166534]';
+        topTitle.innerText = `Design Verification Passed — All CFR ${isGas ? '192' : '195'} & ASME Limits Satisfied`;
+        topBadge.className = 'text-[10px] font-mono px-2 py-0.5 rounded bg-white font-bold border border-emerald-300 text-[#166534]';
+        topBadge.innerText = 'STATUS: COMPLIANT';
+        issuesBox.classList.add('hidden');
+      } else {
+        const hasCritical = warnings.some(w => w.level === 'critical');
+        topBanner.className = hasCritical 
+          ? 'rounded border border-red-300 bg-[#FFF5F5] p-3 shadow-xs' 
+          : 'rounded border border-amber-300 bg-[#FFFDF0] p-3 shadow-xs';
+
+        topIcon.setAttribute('data-lucide', 'alert-triangle');
+        topIcon.className = hasCritical ? 'w-4 h-4 text-[#DC2626]' : 'w-4 h-4 text-[#D97706]';
+
+        topTitle.className = hasCritical 
+          ? 'font-bold text-xs uppercase tracking-wide text-[#DC2626] flex items-center gap-1' 
+          : 'font-bold text-xs uppercase tracking-wide text-[#D97706] flex items-center gap-1';
+        topTitle.innerText = `Review Required — ${warnings.length} check(s) flagged`;
+
+        topBadge.className = hasCritical 
+          ? 'text-[10px] font-mono px-2 py-0.5 rounded bg-white font-bold border border-red-300 text-[#DC2626]' 
+          : 'text-[10px] font-mono px-2 py-0.5 rounded bg-white font-bold border border-amber-300 text-[#D97706]';
+        topBadge.innerText = hasCritical ? 'STATUS: CRITICAL ISSUES' : 'STATUS: ADVISORY';
+
+        issuesBox.classList.remove('hidden');
+
+        warnings.forEach(w => {
+          const item = document.createElement('div');
+          const isCrit = w.level === 'critical';
+          item.className = isCrit 
+            ? 'p-2.5 rounded bg-red-100/70 border border-red-200 text-red-950 space-y-1' 
+            : 'p-2.5 rounded bg-amber-100/70 border border-amber-200 text-amber-950 space-y-1';
+
+          item.innerHTML = `
+            <div class="flex items-center justify-between font-bold text-[11px]">
+              <span class="flex items-center gap-1.5">
+                <span class="${isCrit ? 'text-[#DC2626]' : 'text-[#D97706]'} font-extrabold text-sm">⚠</span>
+                ${w.title}
+              </span>
+              <a href="${w.url}" target="_blank" rel="noopener noreferrer" class="text-[10px] font-mono bg-white/90 px-1.5 py-0.5 rounded border border-slate-300 hover:underline text-blue-700">
+                ${w.standard} ↗
+              </a>
+            </div>
+            <div class="text-[10.5px] pl-4 opacity-90 leading-relaxed">
+              <div><strong>Cause:</strong> ${w.reason}</div>
+              <div><strong>Resolution:</strong> ${w.action}</div>
+            </div>
+          `;
+          issuesBox.appendChild(item);
+        });
+      }
+    }
+
+    function findCommercialPipe(D, required_t) {
+      const commSchedEl = document.getElementById('resCommercialSched');
+      const commSchedDesig = document.getElementById('resSchedDesignation');
+      const commDiffEl = document.getElementById('resCommercialDiff');
+
+      let pipeOptions = STANDARD_PIPE_DATA[D];
+      if (!pipeOptions) {
+        // Fallback standard nominal list
+        pipeOptions = [
+          { t: 0.188, sched: 'Standard' },
+          { t: 0.219, sched: 'SCH 20' },
+          { t: 0.250, sched: 'SCH 30' },
+          { t: 0.281, sched: 'SCH 30' },
+          { t: 0.312, sched: 'SCH 40 / STD' },
+          { t: 0.375, sched: 'SCH 60' },
+          { t: 0.438, sched: 'SCH 80 / XS' },
+          { t: 0.500, sched: 'SCH 100' },
+          { t: 0.562, sched: 'SCH 120' },
+          { t: 0.625, sched: 'SCH 140' },
+          { t: 0.750, sched: 'SCH 160' },
+          { t: 0.875, sched: 'XXS' },
+          { t: 1.000, sched: 'Special' }
+        ];
+      }
+
+      let selected = pipeOptions.find(item => item.t >= required_t);
+
+      if (!selected) {
+        commSchedEl.innerText = '> 1.000" (Special Heavy Wall)';
+        commSchedDesig.innerText = 'Heavy Wall';
+        commDiffEl.innerText = 'Exceeds standard listing';
+        commDiffEl.className = 'text-[10px] font-bold text-[#D97706] bg-amber-50 px-2 py-0.5 rounded border border-amber-300';
+        return { t: 1.000, sched: 'Heavy Wall' };
+      }
+
+      const diff = selected.t - required_t;
+      commSchedEl.innerText = `${selected.t.toFixed(3)}" nominal`;
+      commSchedDesig.innerText = selected.sched;
+      commDiffEl.innerText = `+${diff.toFixed(3)}" margin`;
+      commDiffEl.className = 'text-[10px] font-bold text-[#166534] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-300';
+      return selected;
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
